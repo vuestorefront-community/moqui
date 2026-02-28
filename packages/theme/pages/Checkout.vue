@@ -2,6 +2,12 @@
   <div id="checkout">
     <div class="checkout">
       <div class="checkout__main">
+        <SfAlert
+          v-if="isGuestCheckout && !isThankYou"
+          class="checkout__guest-banner"
+          type="info"
+          :message="$t('You are checking out as a guest')"
+        />
         <SfSteps
           v-if="!isThankYou"
           :active="currentStepIndex"
@@ -23,10 +29,11 @@
   </div>
 </template>
 <script>
-import { SfSteps, SfButton } from '@storefront-ui/vue';
+import { SfAlert, SfSteps, SfButton } from '@storefront-ui/vue';
 import CartPreview from '~/components/Checkout/CartPreview';
 import { computed, watch, useRoute, useRouter } from '@nuxtjs/composition-api';
 import { useUser } from '@vue-storefront/moqui';
+import { useGuestCheckout } from '~/composables';
 
 const STEPS = {
   account: 'Customer Info',
@@ -38,6 +45,7 @@ export default {
   name: 'Checkout',
   middleware: 'checkout',
   components: {
+    SfAlert,
     SfButton,
     SfSteps,
     CartPreview
@@ -46,6 +54,7 @@ export default {
     const route = useRoute();
     const router = useRouter();
     const { isAuthenticated } = useUser();
+    const { isGuestCheckout } = useGuestCheckout();
     const currentStep = computed(() => route.value.path.split('/').pop());
     const currentStepIndex = computed(() =>
       Object.keys(STEPS).findIndex((s) => s === currentStep.value)
@@ -61,7 +70,9 @@ export default {
     watch(
       isAuthenticated,
       (newVal) => {
-        if (!newVal) router.push('/checkout/account');
+        if (!newVal && !isThankYou.value && !isGuestCheckout.value) {
+          router.push('/checkout/account');
+        }
         // else if (currentStepIndex.value === [0] && newVal === true) {
         //   const key = Object.keys(STEPS)[currentStepIndex.value + 1];
         //   router.push(`/checkout/${key}`);
@@ -79,7 +90,7 @@ export default {
         //   const key = Object.keys(STEPS)[currentStepIndex.value + 1];
         //   router.push(`/checkout/${key}`);
         // } else
-        if (!isAuthenticated.value && newVal !== 0) {
+        if (!isAuthenticated.value && !isGuestCheckout.value && newVal !== 0 && !isThankYou.value) {
           const key = Object.keys(STEPS)[0];
           router.push(`/checkout/${key}`);
         }
@@ -98,6 +109,7 @@ export default {
       STEPS,
       currentStepIndex,
       isThankYou,
+      isGuestCheckout,
       currentStep,
       handleStepClick
     };
@@ -131,6 +143,14 @@ export default {
     @include for-desktop {
       flex: 0 0 25.5rem;
       margin: 0 0 0 4.25rem;
+    }
+  }
+
+  &__guest-banner {
+    margin: var(--spacer-base) var(--spacer-base) var(--spacer-lg);
+
+    @include for-desktop {
+      margin: 0 0 var(--spacer-lg);
     }
   }
 

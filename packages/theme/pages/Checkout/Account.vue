@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="!isAuthenticated">
+    <div v-if="!canManageAddresses">
       <SfHeading
         v-e2e="'account-heading'"
         :level="3"
@@ -21,7 +21,7 @@
           </p>
         </template>
         <!-- Login subtitle -->
-        <template v-if="currentAccountStep === 'register'">
+        <template v-if="currentAccountStep === 'register' || currentAccountStep === 'guest'">
           <p class="subtitle">
             {{ $t('Already have an account?') }}
             <SfButton
@@ -50,6 +50,24 @@
             @submit="handleRegister"
           />
         </template>
+        <template v-else-if="currentAccountStep === 'guest'">
+          <GuestCheckoutForm
+            :error="guestError"
+            :loading="guestLoading"
+            @submit="handleGuestCheckout"
+          />
+        </template>
+        <div
+          v-if="currentAccountStep === 'login'"
+          class="form__element"
+        >
+          <SfButton
+            class="sf-button--full-width color-secondary"
+            @click="handleAccountStep('guest')"
+          >
+            {{ $t('Checkout as Guest') }}
+          </SfButton>
+        </div>
       </div>
     </div>
     <div v-else>
@@ -60,12 +78,22 @@
           :title="$t('Select a Shipping Address')"
           class="sf-heading--left sf-heading--no-underline title"
         />
-        <p class="subtitle__standout">
+        <p v-if="isAuthenticated" class="subtitle__standout">
           {{ $t('Welcome back') }},&nbsp;{{ userFullName }}!
           <span class="subtitle">
             {{ $t('Not') }} {{ userFirstName }}?
             <SfLink @click="handleLogout"> {{ $t('Logout') }}</SfLink>
           </span>
+        </p>
+        <p v-else-if="isGuestCheckout" class="subtitle">
+          {{ $t('Want to use an account instead?') }}
+          <SfButton class="sf-button--text" @click="handleSwitchToAccountStep('login')">
+            {{ $t('Sign in') }}
+          </SfButton>
+          {{ $t('or') }}
+          <SfButton class="sf-button--text" @click="handleSwitchToAccountStep('register')">
+            {{ $t('Register') }}
+          </SfButton>
         </p>
       </div>
       <AddressSelector>
@@ -92,6 +120,8 @@ import { useUser, userGetters } from '@vue-storefront/moqui';
 import CreateAccountForm from '~/components/MyAccount/CreateAccountForm';
 import AddressSelector from '~/components/Checkout/AddressSelector';
 import LoginForm from '~/components/MyAccount/LoginForm';
+import GuestCheckoutForm from '~/components/MyAccount/GuestCheckoutForm';
+import { useGuestCheckout } from '~/composables';
 
 const ACCOUNT_STEPS = {
   register: 'Register',
@@ -109,6 +139,7 @@ export default {
     SfLink,
     CreateAccountForm,
     LoginForm,
+    GuestCheckoutForm,
     AddressSelector
   },
   setup() {
@@ -130,6 +161,35 @@ export default {
       )
     );
     const handleAccountStep = (step) => (currentAccountStep.value = step);
+    const guestLoading = ref(false);
+    const guestError = ref(null);
+    const { loginAsGuest, clearGuestCheckout, isGuestCheckout } = useGuestCheckout();
+    const canManageAddresses = computed(
+      () => isAuthenticated.value || isGuestCheckout.value
+    );
+
+    const handleGuestCheckout = async ({ form, onComplete, onError }) => {
+      guestLoading.value = true;
+      guestError.value = null;
+      try {
+        await loginAsGuest({
+          email: form.value.email,
+          firstName: form.value.firstName,
+          lastName: form.value.lastName
+        });
+        onComplete();
+      } catch (err) {
+        guestError.value = { message: err.message || 'Guest checkout failed' };
+        onError();
+      } finally {
+        guestLoading.value = false;
+      }
+    };
+    const handleSwitchToAccountStep = (step) => {
+      clearGuestCheckout();
+      guestError.value = null;
+      currentAccountStep.value = step;
+    };
 
     const loginError = computed(() => userError.value.login);
     const registerError = computed(() => userError.value.register);
@@ -153,15 +213,31 @@ export default {
     };
 
     const handleRegister = ({ form, onComplete, onError }) =>
-      formHandler(() => register({ user: form.value }), onComplete, onError);
+      formHandler(
+        () => register({ user: form.value }),
+        () => {
+          clearGuestCheckout();
+          onComplete();
+        },
+        onError
+      );
     const handleLogin = ({ form, onComplete, onError }) =>
-      formHandler(() => login({ user: form.value }), onComplete, onError);
+      formHandler(
+        () => login({ user: form.value }),
+        () => {
+          clearGuestCheckout();
+          onComplete();
+        },
+        onError
+      );
     const handleLogout = ({ /* form ,*/ onComplete, onError }) =>
       formHandler(() => logout(), onComplete, onError);
     return {
       currentAccountStep,
       currentAccountStepIndex,
       isAuthenticated,
+      isGuestCheckout,
+      canManageAddresses,
       user,
       loading,
       loginError,
@@ -172,7 +248,11 @@ export default {
       handleRegister,
       handleLogin,
       handleLogout,
-      handleAccountStep
+      handleAccountStep,
+      handleSwitchToAccountStep,
+      handleGuestCheckout,
+      guestLoading,
+      guestError
     };
   }
 };

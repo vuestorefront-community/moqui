@@ -179,7 +179,7 @@ import {
 } from '@vue-storefront/moqui';
 import { addBasePath } from '@vue-storefront/core';
 import PaymentProvider from '~/components/Checkout/PaymentProvider';
-import { useUiNotification } from '~/composables';
+import { useUiNotification, useGuestCheckout } from '~/composables';
 
 export default {
   name: 'ReviewOrder',
@@ -200,6 +200,7 @@ export default {
   setup(props, context) {
     const router = useRouter();
     const { send: sendNotification } = useUiNotification();
+    const { clearGuestCheckout } = useGuestCheckout();
     const { cart, load, setCart, loading: cartLoading } = useCart();
     const {
       getPaymentProviderList,
@@ -240,6 +241,7 @@ export default {
       }
 
       if (!order.value.requiresPayment && order.value.statusChanged) {
+        clearGuestCheckout();
         const thankYouPath = {
           name: 'thank-you',
           query: { order: orderGetters.getId(order.value) }

@@ -80,6 +80,7 @@
 import { SfHeading, SfButton, SfCallToAction } from '@storefront-ui/vue';
 import { ref, computed, useRoute } from '@nuxtjs/composition-api';
 import { addBasePath } from '@vue-storefront/core';
+import { useGuestCheckout } from '~/composables';
 
 export default {
   components: {
@@ -89,7 +90,9 @@ export default {
   },
   setup(props, context) {
     const route = useRoute();
+    const { clearGuestCheckout } = useGuestCheckout();
     context.emit('changeStep', 4);
+    clearGuestCheckout();
 
     const companyDetails = ref({
       name: 'Divante Headquarter',

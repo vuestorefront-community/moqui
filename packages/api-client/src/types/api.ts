@@ -72,6 +72,19 @@ export type UserLogoutParams = Record<string, never>;
 export type UserLogoutResponse = Record<string, never>;
 
 /*
+    Guest Checkout
+*/
+export interface UserGuestCheckoutParams {
+  emailAddress: string;
+  firstName?: string;
+  lastName?: string;
+}
+export type UserGuestCheckoutResponse = {
+  moquiSessionToken?: string;
+  customerInfo?: User;
+};
+
+/*
     Load
 */
 export type UserLoadParams = Record<string, never>;
@@ -427,6 +440,13 @@ export type Endpoints = {
   ) => Promise<{
     headers: AxiosResponseHeaders;
     data: UserLogoutResponse;
+  }>;
+  guestCheckout: (
+    context: Context,
+    params: UserGuestCheckoutParams
+  ) => Promise<{
+    headers: AxiosResponseHeaders;
+    data: UserGuestCheckoutResponse;
   }>;
   loadUser: (
     context: Context,

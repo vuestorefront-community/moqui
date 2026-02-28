@@ -84,6 +84,7 @@ import {
 import { computed, watch, useRoute, useRouter } from '@nuxtjs/composition-api';
 import { usePayment } from '@vue-storefront/moqui';
 import { onSSR } from '@vue-storefront/core';
+import { useGuestCheckout } from '~/composables';
 
 export default {
   name: 'GatewayPostPay',
@@ -98,6 +99,7 @@ export default {
   setup(props, context) {
     const route = useRoute();
     const router = useRouter();
+    const { clearGuestCheckout } = useGuestCheckout();
     const { getPaymentConfirmation, paymentConfirmation, error, loading } =
       usePayment();
 
@@ -184,6 +186,7 @@ export default {
 
           if (newVal === 'success') {
             setTimeout(() => {
+              clearGuestCheckout();
               router.push({
                 ...thankYouPage,
                 query: {

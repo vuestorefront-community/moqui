@@ -11,6 +11,7 @@ const canEnterPayment = (cart: Cart) =>
 
 export default async ({ app, $vsf }) => {
   const homepage = app.context.localeRoute({ name: 'home' });
+  const checkoutAccountPage = '/checkout/account';
   const currentPath = app.context.route.fullPath.split('/checkout/')[1];
 
   if (!currentPath || currentPath.startsWith('thank-you')) return;
@@ -22,9 +23,9 @@ export default async ({ app, $vsf }) => {
 
   switch (currentPath) {
     case 'shipping':
-      if (!canEnterShipping(cart?.data)) {
+      if (!cart?.data?.orderPart?.customerPartyId) {
         console.warn('Not authorized for shipping, redirecting...');
-        return app.context.redirect(homepage);
+        return app.context.redirect(checkoutAccountPage);
       }
       break;
     case 'payment':

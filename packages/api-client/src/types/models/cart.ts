@@ -66,6 +66,7 @@ export type Cart = {
     };
     orderPart: {
         orderPartSeqId: string;
+        customerPartyId?: string;
         telecomContactMechId?: string;
         postalContactMechId?: string;
         carrierPartyId?: string;
